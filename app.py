@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, Form, HTTPException
+from fastapi import FastAPI, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
@@ -22,11 +22,11 @@ if not GMAIL_ADDRESS or not GMAIL_PASSWORD:
     raise ValueError("Gmail credentials not found in environment variables")
 
 
+# Pydantic Model for Email Data
 class Email(BaseModel):
     recipient: str
     subject: str
     body: str
-    file: Optional[str] = None  # Represent the file path as a string
 
 
 def send_email(recipient: str, subject: str, body: str, file_path: Optional[str] = None):
@@ -73,17 +73,12 @@ def send_email(recipient: str, subject: str, body: str, file_path: Optional[str]
 
 @app.post("/send-email/")
 async def send_email_endpoint(
-    recipient: str = Form(...),
-    subject: str = Form(...),
-    body: str = Form(...),
-    file: Optional[UploadFile] = None,
+    email: Email, file: Optional[UploadFile] = None
 ):
     """
     Endpoint to send an email with an optional file attachment.
 
-    :param recipient: Recipient email address.
-    :param subject: Email subject.
-    :param body: Email body.
+    :param email: Email data as JSON payload.
     :param file: Optional file attachment.
     :return: JSON response with email status.
     """
@@ -96,7 +91,7 @@ async def send_email_endpoint(
                 f.write(await file.read())
 
         # Send the email
-        result = send_email(recipient, subject, body, file_path)
+        result = send_email(email.recipient, email.subject, email.body, file_path)
 
         # Remove the temp file if it exists
         if file_path and os.path.exists(file_path):
