@@ -57,9 +57,9 @@ def send_email(recipient: str, subject: str, body: str, file_path: str = None):
 
 @app.post("/send-email/")
 async def send_email_endpoint(
-    recipient: str = Form(...),
-    subject: str = Form(...),
-    body: str = Form(...),
+    recipient: str,
+    subject: str,
+    body: str,
     file: UploadFile = None
 ):
     """
