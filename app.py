@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, HTTPException
+from fastapi import FastAPI, UploadFile, HTTPException, Body
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
@@ -76,7 +76,8 @@ def send_email(recipient: str, subject: str, body: str, file_path: Optional[str]
 
 @app.post("/send-email/")
 async def send_email_endpoint(
-    email_request: EmailRequest, file: Optional[UploadFile] = None
+    email_request: EmailRequest = Body(..., embed=True),
+    file: Optional[UploadFile] = None
 ):
     """
     Endpoint to send an email with an optional file attachment.
