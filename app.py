@@ -4,6 +4,8 @@ import smtplib
 from email.message import EmailMessage
 import os
 from dotenv import load_dotenv
+from pydantic import BaseModel
+from typing import List, Dict, Optional
 
 # Load environment variables from .env file
 load_dotenv()
@@ -18,6 +20,13 @@ GMAIL_PASSWORD = os.getenv('GMAIL_PASSWORD')
 if not GMAIL_ADDRESS or not GMAIL_PASSWORD:
     raise ValueError("Gmail credentials not found in environment variables")
 
+class Email(BaseModel):
+    recipient: str
+    subject: str
+    body: str
+    file: Optional[File]
+
+    
 def send_email(recipient: str, subject: str, body: str, file_path: str = None):
     """
     Sends an email with an optional file attachment.
@@ -56,12 +65,7 @@ def send_email(recipient: str, subject: str, body: str, file_path: str = None):
 
 
 @app.post("/send-email/")
-async def send_email_endpoint(
-    recipient: str,
-    subject: str,
-    body: str,
-    file: UploadFile = None
-):
+async def send_email_endpoint(email: Email):
     """
     Endpoint to send an email with an optional file attachment.
 
@@ -71,6 +75,10 @@ async def send_email_endpoint(
     :param file: Optional file attachment.
     :return: JSON response with email status.
     """
+    recipient = email.recipient
+    subject = email.subject
+    body = email.body
+    file = email.file
     try:
         # Save the uploaded file locally if provided
         file_path = None
