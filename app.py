@@ -22,11 +22,14 @@ if not GMAIL_ADDRESS or not GMAIL_PASSWORD:
     raise ValueError("Gmail credentials not found in environment variables")
 
 
-# Pydantic Model for Email Data
-class Email(BaseModel):
+# Updated Pydantic Models
+class EmailContent(BaseModel):
     recipient: str
     subject: str
     body: str
+
+class EmailRequest(BaseModel):
+    email: EmailContent
 
 
 def send_email(recipient: str, subject: str, body: str, file_path: Optional[str] = None):
@@ -73,27 +76,21 @@ def send_email(recipient: str, subject: str, body: str, file_path: Optional[str]
 
 @app.post("/send-email/")
 async def send_email_endpoint(
-    email: Email, file: Optional[UploadFile] = None
+    email_request: EmailRequest, file: Optional[UploadFile] = None
 ):
     """
     Endpoint to send an email with an optional file attachment.
-
-    :param email: Email data as JSON payload.
-    :param file: Optional file attachment.
-    :return: JSON response with email status.
     """
     try:
-        # Save the uploaded file locally if provided
+        email = email_request.email
         file_path = None
         if file:
             file_path = f"temp_{file.filename}"
             with open(file_path, "wb") as f:
                 f.write(await file.read())
 
-        # Send the email
         result = send_email(email.recipient, email.subject, email.body, file_path)
 
-        # Remove the temp file if it exists
         if file_path and os.path.exists(file_path):
             os.remove(file_path)
 
