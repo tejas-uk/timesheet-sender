@@ -4,6 +4,7 @@ import smtplib
 from email.message import EmailMessage
 import os
 from dotenv import load_dotenv
+from fastapi import Body
 
 # Load environment variables from .env file
 load_dotenv()
@@ -54,11 +55,12 @@ def send_email(recipient: str, subject: str, body: str, file_path: str = None):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/send-email/")
 async def send_email_endpoint(
-    recipient: str = Form(...),
-    subject: str = Form(...),
-    body: str = Form(...),
+    recipient: str = Body(...),
+    subject: str = Body(...),
+    body: str = Body(...),
     file: UploadFile = None
 ):
     """
@@ -71,7 +73,7 @@ async def send_email_endpoint(
     :return: JSON response with email status.
     """
     try:
-        # Save the uploaded file locally if provided
+        # Process file upload if provided
         file_path = None
         if file:
             file_path = f"temp_{file.filename}"
@@ -89,6 +91,7 @@ async def send_email_endpoint(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))  # Default to 8000 if PORT is not set
