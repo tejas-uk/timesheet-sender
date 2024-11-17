@@ -1,11 +1,12 @@
 from fastapi import FastAPI, UploadFile, Form, HTTPException
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from typing import Optional
 import smtplib
 from email.message import EmailMessage
 import os
 from dotenv import load_dotenv
-from pydantic import BaseModel
-from typing import List, Dict, Optional
+import uvicorn
 
 # Load environment variables from .env file
 load_dotenv()
@@ -14,20 +15,21 @@ load_dotenv()
 app = FastAPI()
 
 # Gmail credentials from environment variables
-GMAIL_ADDRESS = os.getenv('GMAIL_ADDRESS')
-GMAIL_PASSWORD = os.getenv('GMAIL_PASSWORD')
+GMAIL_ADDRESS = os.getenv("GMAIL_ADDRESS")
+GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
 
 if not GMAIL_ADDRESS or not GMAIL_PASSWORD:
     raise ValueError("Gmail credentials not found in environment variables")
+
 
 class Email(BaseModel):
     recipient: str
     subject: str
     body: str
-    file: Optional[File]
+    file: Optional[str] = None  # Represent the file path as a string
 
-    
-def send_email(recipient: str, subject: str, body: str, file_path: str = None):
+
+def send_email(recipient: str, subject: str, body: str, file_path: Optional[str] = None):
     """
     Sends an email with an optional file attachment.
 
@@ -40,22 +42,27 @@ def send_email(recipient: str, subject: str, body: str, file_path: str = None):
     try:
         # Create the email message
         msg = EmailMessage()
-        msg['From'] = GMAIL_ADDRESS
-        msg['To'] = recipient
-        msg['Subject'] = subject
+        msg["From"] = GMAIL_ADDRESS
+        msg["To"] = recipient
+        msg["Subject"] = subject
         msg.set_content(body)
 
         # Attach the file if a file path is provided
         if file_path:
             if not os.path.exists(file_path):
                 raise FileNotFoundError("Attachment file does not exist")
-            with open(file_path, 'rb') as file:
+            with open(file_path, "rb") as file:
                 file_data = file.read()
                 file_name = os.path.basename(file_path)
-                msg.add_attachment(file_data, maintype='application', subtype='octet-stream', filename=file_name)
+                msg.add_attachment(
+                    file_data,
+                    maintype="application",
+                    subtype="octet-stream",
+                    filename=file_name,
+                )
 
         # Connect to Gmail's SMTP server and send the email
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(GMAIL_ADDRESS, GMAIL_PASSWORD)
             server.send_message(msg)
         return {"status": "success", "message": f"Email sent to {recipient}"}
@@ -65,7 +72,12 @@ def send_email(recipient: str, subject: str, body: str, file_path: str = None):
 
 
 @app.post("/send-email/")
-async def send_email_endpoint(email: Email):
+async def send_email_endpoint(
+    recipient: str = Form(...),
+    subject: str = Form(...),
+    body: str = Form(...),
+    file: Optional[UploadFile] = None,
+):
     """
     Endpoint to send an email with an optional file attachment.
 
@@ -75,10 +87,6 @@ async def send_email_endpoint(email: Email):
     :param file: Optional file attachment.
     :return: JSON response with email status.
     """
-    recipient = email.recipient
-    subject = email.subject
-    body = email.body
-    file = email.file
     try:
         # Save the uploaded file locally if provided
         file_path = None
