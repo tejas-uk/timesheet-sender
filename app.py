@@ -4,7 +4,6 @@ import smtplib
 from email.message import EmailMessage
 import os
 from dotenv import load_dotenv
-from fastapi import Body
 
 # Load environment variables from .env file
 load_dotenv()
@@ -58,9 +57,9 @@ def send_email(recipient: str, subject: str, body: str, file_path: str = None):
 
 @app.post("/send-email/")
 async def send_email_endpoint(
-    recipient: str = Body(...),
-    subject: str = Body(...),
-    body: str = Body(...),
+    recipient: str = Form(...),
+    subject: str = Form(...),
+    body: str = Form(...),
     file: UploadFile = None
 ):
     """
@@ -73,7 +72,7 @@ async def send_email_endpoint(
     :return: JSON response with email status.
     """
     try:
-        # Process file upload if provided
+        # Save the uploaded file locally if provided
         file_path = None
         if file:
             file_path = f"temp_{file.filename}"
